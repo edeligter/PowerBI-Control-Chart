@@ -1,0 +1,699 @@
+{
+    "dataRoles": [
+        {
+            "displayName": "X Axis Data",
+            "name": "xAxis",
+            "kind": "Grouping",
+            "description": "Select X Axis data that is either numeric or date-based"
+        },
+        {
+            "displayName": "Y Axis (Measured) Data",
+            "name": "yAxis",
+            "kind": "Measure",
+            "description": "Select Y Axis data that is numeric",
+            "requiredTypes": [
+                {
+                    "numeric": true
+                }
+            ]
+        },
+        {
+            "displayName": "Stage Names",
+            "name": "stagecolumn",
+            "kind": "Measure",
+            "description": "Select column that identifies stage names"
+        }
+    ],
+    "dataViewMappings": [
+        {
+            "conditions": [
+                {
+                    "xAxis": {
+                        "min": 1,
+                        "max": 1
+                    },
+                    "yAxis": {
+                        "max": 1
+                    },
+                    "stagecolumn": {
+                        "min": 0,
+                        "max": 1
+                    }
+                }
+            ],
+            "categorical": {
+                "categories": {
+                    "for": {
+                        "in": "xAxis"
+                    },
+                    "dataReductionAlgorithm": {
+                        "top": {}
+                    }
+                },
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "yAxis"
+                            }
+                        },
+                        {
+                            "bind": {
+                                "to": "stagecolumn"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "objects": {
+        "chart": {
+            "displayName": "Chart",
+            "properties": {
+                "dataColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Data Point Color"
+                },
+                "lineColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Line Color"
+                },
+                "lineStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Line Style",
+                    "description": "Select line style"
+                },
+                "backgroundColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Plot Area Backgound"
+                },
+                "markerSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Marker Size",
+                    "description": "Select marker size"
+                },
+                "gridlinesColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Grid Line Color"
+                },
+                "gridlinesStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },
+                            {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
+                            },
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Grid Line Style",
+                    "description": "Select grid line style"
+                },
+
+                "showGridLines": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Show Grid Lines",
+                    "description": "Make grid lines visible"
+                }
+            }
+        },
+        "statistics": {
+            "displayName": "Statistics",
+            "properties": {
+                "showDividers": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Show Stage Dividers",
+                    "description": "Make Stage Dividers visible"
+                },
+                "stageDividerColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Stage Divider Color",
+                    "description": "Select Stage Divider line color"
+                },
+                "stageDividerLineStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Divider Line Style",
+                    "description": "Select stage divider line style"
+                },
+                "stageLabelColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Stage Label Color",
+                    "description": "Select Stage Divider label color"
+                },
+                "stageDividerLabelSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Stage Divider Label Size",
+                    "description": "Select Label size"
+                },
+                "limitLineColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Limit Line Color",
+                    "description": "Select UCL and LCL line color"
+                },
+                "limitLineStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },                            
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Limit Line Style",
+                    "description": "Select Limit line style"
+                },
+                "limitLabelColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Limit Label Color",
+                    "description": "Select UCL and LCL label color"
+                },
+                "limitLabelSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Limit Label Size",
+                    "description": "Select UCL and LCL Label size"
+                },
+                "meanLineColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Mean Line Color",
+                    "description": "Select Mean line color"
+                },
+                "meanLineStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Mean Line Style",
+                    "description": "Select Mean line style"
+                },
+                "meanLabelColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Mean Label Color",
+                    "description": "Select Mean Label color"
+                },
+                "meanLabelSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Mean Label Size",
+                    "description": "Select Mean Label size"
+                },
+                "showMean": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Show Mean",
+                    "description": "Toggle Mean line visibility"
+                },
+                "showLimits": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Show Control Limits",
+                    "description": "Toggle UCL and LCL lines visibility"
+                },
+                "standardDeviations": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "1 SD",
+                                "value": "1"
+                            },
+                            {
+                                "displayName": "2 SD",
+                                "value": "2"
+                            },
+                            {
+                                "displayName": "3 SD",
+                                "value": "3"
+                            }
+                        ]
+                    },
+                    "displayName": "Standard Deviation",
+                    "description": "Select number of standard deviations to set UCL and LCL"
+                },
+                "movingRange": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Moving Range",
+                    "description": "Select Moving Range for estimation of standard deviation"
+                }
+            }
+        },
+        "xAxis": {
+            "displayName": "X Axis",
+            "properties": {
+                "xAxisTitle": {
+                    "type": {
+                        "text": true
+                    },
+                    "displayName": "Title"
+                },
+                "xAxisTitleColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Title Color"
+                },
+                "xAxisTitleSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Title Size"
+                },
+                "xAxisLabelColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Axis Label Color"
+                },
+                "xAxisLabelSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Axis Label Size"
+                },
+                "xAxisFormat": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "0",
+                                "value": ".1s"
+                            },
+                            {
+                                "displayName": "00",
+                                "value": ".2s"
+                            },
+                            {
+                                "displayName": "000",
+                                "value": ".3s"
+                            },
+                            {
+                                "displayName": "0000",
+                                "value": ".4s"
+                            },
+                            {
+                                "displayName": "00000",
+                                "value": ".5s"
+                            },
+                            {
+                                "displayName": "000000",
+                                "value": ".6s"
+                            }
+                        ]
+                    },
+                    "displayName": "Axis Label Format",
+                    "description": "Select format for X Axis Labels"
+                },
+                "dateFormat": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Day (as number)",
+                                "value": "%d"
+                            },
+                            {
+                                "displayName": "Abbreviated Weekday Name",
+                                "value": "%a"
+                            },
+                            {
+                                "displayName": "Full Weekday Name",
+                                "value": "%A"
+                            },
+                            {
+                                "displayName": "Weekday as number",
+                                "value": "%w"
+                            },
+                            {
+                                "displayName": "dd-mm",
+                                "value": "%d-%b"
+                            },
+                            {
+                                "displayName": "dd-mm-yy",
+                                "value": "%d-%b-%y"
+                            },
+                            {
+                                "displayName": "dd-mm-yy hh:mm",
+                                "value": "%d-%b-%y %H:%M"
+                            },
+                            {
+                                "displayName": "Abbreviated Month Name",
+                                "value": "%b"
+                            },
+                            {
+                                "displayName": "Full Month Name",
+                                "value": "%B"
+                            },
+                            {
+                                "displayName": "Month as number",
+                                "value": "%m"
+                            },
+                            {
+                                "displayName": "mm-dd",
+                                "value": "%b-%d"
+                            },
+                            {
+                                "displayName": "mm-yy",
+                                "value": "%b-%y"
+                            },
+                            {
+                                "displayName": "mm-dd-yy",
+                                "value": "%b-%d-%y"
+                            },
+                            {
+                                "displayName": "mm-dd-yy hh:mm",
+                                "value": "%b-%d-%y %H:%M"
+                            },
+                            {
+                                "displayName": "Year (without century)",
+                                "value": "%y"
+                            },
+                            {
+                                "displayName": "Year (with century)",
+                                "value": "%Y"
+                            },
+                            {
+                                "displayName": "Hours",
+                                "value": "%H"
+                            },
+                            {
+                                "displayName": "Minutes",
+                                "value": "%M"
+                            },
+                            {
+                                "displayName": "Date as m/d/Y",
+                                "value": "%x"
+                            },
+                            {
+                                "displayName": "Week Number of Year (From Sunday)",
+                                "value": "%U"
+                            },
+                            {
+                                "displayName": "Week Number of Year (From Monday)",
+                                "value": "%W"
+                            }
+                        ]
+                    },
+                    "displayName": "Date Format",
+                    "description": "Select format for X Axis Labels"
+                }
+            }
+        },
+        "yAxis": {
+            "displayName": "Y Axis",
+            "properties": {
+                "yAxisTitle": {
+                    "type": {
+                        "text": true
+                    },
+                    "displayName": "Title"
+                },
+                "yAxisTitleColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Title Color"
+                },
+                "yAxisTitleSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Title Size"
+                },
+                "yAxisLabelColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Axis Label Color"
+                },
+                "yAxisLabelSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Axis Label Size"
+                },
+                "yAxisFormat": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "0",
+                                "value": ".1s"
+                            },
+                            {
+                                "displayName": "00",
+                                "value": ".2s"
+                            },
+                            {
+                                "displayName": "000",
+                                "value": ".3s"
+                            },
+                            {
+                                "displayName": "0000",
+                                "value": ".4s"
+                            },
+                            {
+                                "displayName": "00000",
+                                "value": ".5s"
+                            },
+                            {
+                                "displayName": "000000",
+                                "value": ".6s"
+                            }
+                        ]
+                    },
+                    "displayName": "Axis Label Format",
+                    "description": "Select format for Y Axis Labels"
+                }
+            }
+        },
+        "rules": {
+            "displayName": "Rules",
+            "properties": {
+                "ruleColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Highlight Color",
+                    "description": "Select color for rules "
+                },
+                "runRule1": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Values outside LCL and UCL",
+                    "description": "Highlight values above UCL or below LCL"
+                },
+                "runRule2": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Consecutive values",
+                    "description": "Highlight sequences of 6 or more consecutive increasing or decreasing values"
+                },
+                "runRule3": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Consecutive values above or below mean",
+                    "description": "Highlight values of 9 or more consecutive values all above or all below mean"
+                }
+            }
+        }
+    }
+}
