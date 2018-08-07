@@ -119,6 +119,70 @@
                     "displayName": "Line Style",
                     "description": "Select line style"
                 },
+                "backgroundColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Plot Area Backgound"
+                },
+                "markerSize": {
+                    "type": {
+                        "integer": true
+                    },
+                    "displayName": "Marker Size",
+                    "description": "Select marker size"
+                },
+                "gridlinesColor": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    },
+                    "displayName": "Grid Line Color"
+                },
+                "gridlinesStyle": {
+                    "type": {
+                        "enumeration": [
+                            {
+                                "displayName": "Solid",
+                                "value": ""
+                            },
+                            {
+                                "displayName": "Small Dash",
+                                "value": "6,4"
+                            },
+                            {
+                                "displayName": "Dash",
+                                "value": "10,4"
+                            },
+                            {
+                                "displayName": "Dot",
+                                "value": "2,2"
+                            },
+                            {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
+                            },
+                            {
+                                "displayName": "Dash-Dot",
+                                "value": "10,2,4"
+                            }
+                        ]
+                    },
+                    "displayName": "Grid Line Style",
+                    "description": "Select grid line style"
+                },
+
                 "showGridLines": {
                     "type": {
                         "bool": true
@@ -224,15 +288,15 @@
                             {
                                 "displayName": "Dot",
                                 "value": "2,2"
-                            },
+                            },                            
                             {
                                 "displayName": "Dash-Dot",
                                 "value": "10,2,4"
                             }
                         ]
                     },
-                    "displayName": "Line Style",
-                    "description": "Select line style"
+                    "displayName": "Limit Line Style",
+                    "description": "Select Limit line style"
                 },
                 "limitLabelColor": {
                     "type": {
@@ -429,6 +493,22 @@
                     "type": {
                         "enumeration": [
                             {
+                                "displayName": "Day (as number)",
+                                "value": "%d"
+                            },
+                            {
+                                "displayName": "Abbreviated Weekday Name",
+                                "value": "%a"
+                            },
+                            {
+                                "displayName": "Full Weekday Name",
+                                "value": "%A"
+                            },
+                            {
+                                "displayName": "Weekday as number",
+                                "value": "%w"
+                            },
+                            {
                                 "displayName": "dd-mm",
                                 "value": "%d-%b"
                             },
@@ -441,6 +521,22 @@
                                 "value": "%d-%b-%y %H:%M"
                             },
                             {
+                                "displayName": "Abbreviated Month Name",
+                                "value": "%b"
+                            },
+                            {
+                                "displayName": "Full Month Name",
+                                "value": "%B"
+                            },
+                            {
+                                "displayName": "Month as number",
+                                "value": "%m"
+                            },
+                            {
+                                "displayName": "mm-dd",
+                                "value": "%b-%d"
+                            },
+                            {
                                 "displayName": "mm-yy",
                                 "value": "%b-%y"
                             },
@@ -451,6 +547,34 @@
                             {
                                 "displayName": "mm-dd-yy hh:mm",
                                 "value": "%b-%d-%y %H:%M"
+                            },
+                            {
+                                "displayName": "Year (without century)",
+                                "value": "%y"
+                            },
+                            {
+                                "displayName": "Year (with century)",
+                                "value": "%Y"
+                            },
+                            {
+                                "displayName": "Hours",
+                                "value": "%H"
+                            },
+                            {
+                                "displayName": "Minutes",
+                                "value": "%M"
+                            },
+                            {
+                                "displayName": "Date as m/d/Y",
+                                "value": "%x"
+                            },
+                            {
+                                "displayName": "Week Number of Year (From Sunday)",
+                                "value": "%U"
+                            },
+                            {
+                                "displayName": "Week Number of Year (From Monday)",
+                                "value": "%W"
                             }
                         ]
                     },
@@ -552,22 +676,22 @@
                     "type": {
                         "bool": true
                     },
-                    "displayName": "Rule 1",
+                    "displayName": "Values outside LCL and UCL",
                     "description": "Highlight values above UCL or below LCL"
                 },
                 "runRule2": {
                     "type": {
                         "bool": true
                     },
-                    "displayName": "Rule 2",
+                    "displayName": "Consecutive values",
                     "description": "Highlight sequences of 6 or more consecutive increasing or decreasing values"
                 },
                 "runRule3": {
                     "type": {
                         "bool": true
                     },
-                    "displayName": "Rule 3",
-                    "description": "Highlight values of 9 or more consecutive values above or below mean"
+                    "displayName": "Consecutive values above or below mean",
+                    "description": "Highlight values of 9 or more consecutive values all above or all below mean"
                 }
             }
         }
