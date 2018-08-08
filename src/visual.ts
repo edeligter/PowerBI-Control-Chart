@@ -69,6 +69,7 @@ module powerbi.extensibility.visual {
         ruleColor: string;
         movingRange: number;
         mRError: boolean;
+        showmRWarning: boolean;
     };
 
     interface LineData {
@@ -185,7 +186,8 @@ module powerbi.extensibility.visual {
             runRule3: false,
             ruleColor: null,
             movingRange: 2,
-            mRError: false
+            mRError: false,
+            showmRWarning: true
         };
 
         let defGridlineColor: string = '#c2c6c6';
@@ -204,9 +206,7 @@ module powerbi.extensibility.visual {
         let categorical = dataViews[0].categorical;
         let category = categorical.categories[0];
         let dataValue = categorical.values[0];
-        let ChartDataPoints: ChartDataPoint[] = [];
-
-      
+        let ChartDataPoints: ChartDataPoint[] = [];  
 
         var xValues: PrimitiveValue[] = category.values;
         var yValues: PrimitiveValue[] = dataValue.values;
@@ -304,7 +304,7 @@ module powerbi.extensibility.visual {
                     minY: 0,
                     maxY: 0,
                     data: chartData,
-                    backgroundColor: getFill(dataViews[0], 'chart', 'backgroundColor', 'none'),
+                    backgroundColor: getFill(dataViews[0], 'chart', 'backgroundColor', '#FFFFFF'),
                     marker: Marker,
                     gridlines: GridLines,
                     xAxis: xAxisData,
@@ -319,7 +319,8 @@ module powerbi.extensibility.visual {
                     runRule3: getValue<boolean>(dataViews[0].metadata.objects, 'rules', 'runRule3', false),
                     ruleColor: getFill(dataViews[0], 'rules', 'ruleColor', '#FFFF00'),
                     movingRange: mRange,
-                    mRError: false
+                    mRError: false,
+                    showmRWarning: getValue<boolean>(dataViews[0].metadata.objects, 'statistics', 'showmRWarning', true)
                 }
             }
             else {
@@ -438,18 +439,20 @@ module powerbi.extensibility.visual {
 
             this.GetMinMaxX();
             var xScale;
-            var dateFormat;
-            dateFormat = d3.time.format(vmXaxis.AxisFormat);
+            var xFormat;
+            xFormat = d3.time.format(vmXaxis.AxisFormat);
             if (viewModel.isDateRange) {
                 xScale = d3.time.scale()
                     .range([0, plot.width])
-                    .domain([viewModel.minX, viewModel.maxX]);
+                    .domain([viewModel.minX, viewModel.maxX])
+                    .nice();
             }
             else {
                 xScale = d3.scale.linear()
                     .range([0, plot.width])
-                    .domain([viewModel.minX, viewModel.maxX]);
-                dateFormat = d3.format(vmXaxis.AxisFormat);
+                    .domain([viewModel.minX, viewModel.maxX])
+                    .nice();
+                xFormat = d3.format(vmXaxis.AxisFormat);
             }
 
             this.xScale = xScale;           
@@ -459,7 +462,7 @@ module powerbi.extensibility.visual {
                 .orient('bottom')
                 .innerTickSize(-plot.height)
                 .tickPadding(14)
-                .tickFormat(dateFormat);
+                .tickFormat(xFormat);
 
             if (!viewModel.gridlines.show) {
                 xAxis.innerTickSize(0);
@@ -550,7 +553,7 @@ module powerbi.extensibility.visual {
                 .call(yGridlineAxis)
                 .style("font-size", '0px'); */
             
-            this.svgGroupMain.selectAll(".tick:not(:first-of-type) line").attr("stroke", viewModel.gridlines.lineColor).attr("stroke-dasharray",  viewModel.gridlines.lineStyle);
+            this.svgGroupMain.selectAll(".tick").attr("stroke", viewModel.gridlines.lineColor).attr("stroke-dasharray",  viewModel.gridlines.lineStyle);
            
             this.svgGroupMain.append("text")
                 .attr("transform", "rotate(-90)")
@@ -900,14 +903,14 @@ module powerbi.extensibility.visual {
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
             var plot = this.plot;
             var yAxisOffset = 54;
-            if (viewModel.mRError) {
+            if (viewModel.mRError && viewModel.showmRWarning) {
                 this.svgGroupMain.append("text")
                     .attr("y", yAxisOffset)
                     .attr("x", (plot.width / 2))
                     .style("text-anchor", "middle")
                     .style("font-size", '20px')
                     .style("fill", 'red')
-                    .text('Selected Moving Range is greater than the number of data points in a stage');
+                    .text('Selected Moving Range is greater than the number of data points in a Subgroup');
             }
         }
 
@@ -922,17 +925,18 @@ module powerbi.extensibility.visual {
                 this.svgGroupMain.selectAll("divider")
                     .data(stageDividers)
                     .enter().append("polyline")
-                    .attr("points", function (d) { return xScale(d['x1']).toString() + "," + "0," + xScale(d['x1']).toString() + "," + plot.height.toString() })
+                    //.attr("points", function (d) { return xScale(d['x1']).toString() + "," + "0," + xScale(d['x1']).toString() + "," + plot.height.toString() })
+                    .attr("points", function (d) {if(xScale(d['x1']) < plot.width) return xScale(d['x1']).toString() + "," + "0," + xScale(d['x1']).toString() + "," + plot.height.toString() })
                     .style({ "stroke": stageDiv.lineColor, "stroke-width": 1.5, "stroke-dasharray": (stageDiv.lineStyle) });
                 var dividerText = this.svgGroupMain.selectAll("dividerText")
                     .data(stageDividers)
                     .enter().append("text")
-                    .attr("x", function (d) { return xScale(d['prevDividerX']).toString() })
+                    .attr("x", function (d) { return xScale(d['prevDividerX']).toString()})
                     .attr("y", "0")
                     .attr("dx", ".35em")
                     .attr("dy", "1em")
                     .attr("text-anchor", "start")
-                    .text(function (d) { return d['stageName'].toString() })
+                    .text(function (d) { return d['stageName'].toString()  })
                     .style("font-size", stageDiv.textSize + 'px')
                     .style("fill", stageDiv.textColor);
             }
@@ -1221,7 +1225,8 @@ module powerbi.extensibility.visual {
                             meanLabelSize: viewModel.meanLine.textSize,
                             meanLineStyle: viewModel.meanLine.lineStyle,
                             standardDeviations: viewModel.standardDeviations,
-                            movingRange: viewModel.movingRange
+                            movingRange: viewModel.movingRange,
+                            showmRWarning: viewModel.showmRWarning
                         },
                         validValues: {
                             stageDividerLabelSize: {
