@@ -18,10 +18,10 @@
             ]
         },
         {
-            "displayName": "Stage Names",
+            "displayName": "Subgroup Names",
             "name": "stagecolumn",
             "kind": "Measure",
-            "description": "Select column that identifies stage names"
+            "description": "Select column that identifies Subgroup Names"
         }
     ],
     "dataViewMappings": [
@@ -109,6 +109,14 @@
                             {
                                 "displayName": "Dot",
                                 "value": "2,2"
+                            },
+                            {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
                             },
                             {
                                 "displayName": "Dash-Dot",
@@ -199,8 +207,8 @@
                     "type": {
                         "bool": true
                     },
-                    "displayName": "Show Stage Dividers",
-                    "description": "Make Stage Dividers visible"
+                    "displayName": "Show Subgroup Dividers",
+                    "description": "Make Subgroup Dividers visible"
                 },
                 "stageDividerColor": {
                     "type": {
@@ -210,8 +218,8 @@
                             }
                         }
                     },
-                    "displayName": "Stage Divider Color",
-                    "description": "Select Stage Divider line color"
+                    "displayName": "Subgroup Divider Color",
+                    "description": "Select Subgroup Divider line color"
                 },
                 "stageDividerLineStyle": {
                     "type": {
@@ -233,13 +241,21 @@
                                 "value": "2,2"
                             },
                             {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
+                            },
+                            {
                                 "displayName": "Dash-Dot",
                                 "value": "10,2,4"
                             }
                         ]
                     },
-                    "displayName": "Divider Line Style",
-                    "description": "Select stage divider line style"
+                    "displayName": "Subgroup Divider Line Style",
+                    "description": "Select Subgroup Divider line style"
                 },
                 "stageLabelColor": {
                     "type": {
@@ -249,15 +265,15 @@
                             }
                         }
                     },
-                    "displayName": "Stage Label Color",
-                    "description": "Select Stage Divider label color"
+                    "displayName": "Subgroup Label Color",
+                    "description": "Select Subgroup Divider label color"
                 },
                 "stageDividerLabelSize": {
                     "type": {
                         "integer": true
                     },
-                    "displayName": "Stage Divider Label Size",
-                    "description": "Select Label size"
+                    "displayName": "Subgroup Divider Label Size",
+                    "description": "Select Subgroup Divider label size"
                 },
                 "limitLineColor": {
                     "type": {
@@ -288,7 +304,15 @@
                             {
                                 "displayName": "Dot",
                                 "value": "2,2"
-                            },                            
+                            },
+                            {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
+                            },
                             {
                                 "displayName": "Dash-Dot",
                                 "value": "10,2,4"
@@ -345,6 +369,14 @@
                             {
                                 "displayName": "Dot",
                                 "value": "2,2"
+                            },
+                            {
+                                "displayName": "Small Dot",
+                                "value": "1,1"
+                            },
+                            {
+                                "displayName": "Sparse Dot",
+                                "value": "1,4"
                             },
                             {
                                 "displayName": "Dash-Dot",
@@ -413,6 +445,14 @@
                     },
                     "displayName": "Moving Range",
                     "description": "Select Moving Range for estimation of standard deviation"
+                }
+                ,
+                "showmRWarning": {
+                    "type": {
+                        "bool": true
+                    },
+                    "displayName": "Show Moving Range Warning",
+                    "description": "Toggle Moving Range Warning visibility"
                 }
             }
         },
@@ -626,7 +666,11 @@
                 },
                 "yAxisFormat": {
                     "type": {
-                        "enumeration": [
+                        "enumeration": [                            
+                            {
+                                "displayName": "All",
+                                "value": "s"
+                            },
                             {
                                 "displayName": "0",
                                 "value": ".1s"
@@ -650,6 +694,26 @@
                             {
                                 "displayName": "000000",
                                 "value": ".6s"
+                            },
+                            {
+                                "displayName": "All %",
+                                "value": "%"
+                            },
+                            {
+                                "displayName": "% - no decimals",
+                                "value": ".0%"
+                            },
+                            {
+                                "displayName": "% - 1 decimal",
+                                "value": ".1%"
+                            },
+                            {
+                                "displayName": "% - 2 decimals",
+                                "value": ".2%"
+                            },
+                            {
+                                "displayName": "% - 3 decimals",
+                                "value": ".3%"
                             }
                         ]
                     },

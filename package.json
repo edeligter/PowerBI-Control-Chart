@@ -1,7 +1,10 @@
 {
   "name": "visual",
   "dependencies": {
-    "d3": "^3.5.17",
+    "d3": "^3.5.5",
     "typings": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.7"
   }
 }

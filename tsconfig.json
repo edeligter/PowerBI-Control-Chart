@@ -1,6 +1,8 @@
 
 {
   "compilerOptions": {
+    "baseUrl": "types",
+    "typeRoots": ["types"],
     "allowJs": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
