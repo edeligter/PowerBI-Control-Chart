@@ -11,6 +11,8 @@ Changes to gridlines and plot area code and added plot area background color edi
 
 Added try-catch to viewmodel update and added extra check for date and numeric x-axis data. (Aug 2018)
 
+X axis label rotation code added
+
 Other minor code changes made for speed and stability. (Aug 2018)
 
 
