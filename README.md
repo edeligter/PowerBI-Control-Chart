@@ -25,4 +25,4 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
-https://visuals.azureedge.net/app-store/Power BI - Default Custom Visual EULA.pdf.
+See EULA file for license conditions.
