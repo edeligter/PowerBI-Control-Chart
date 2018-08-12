@@ -14,11 +14,20 @@ path{
 
 .axis path,
     .axis line{
-    //fill: none;
-    //stroke: grey;
-    stroke-width: 1;    
+        fill: none;
+        stroke: grey;
+        stroke-width: 1;
+        shape-rendering: crispEdges;    
 }
 
+.grid .tick {
+    stroke: rgb(223, 21, 21);
+    stroke-opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+.grid path {
+    stroke-width: 0;
+}
 /* .tick line{
     stroke: lightgrey;
     stroke-opacity: 0.7;
