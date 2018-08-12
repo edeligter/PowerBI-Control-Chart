@@ -29,25 +29,31 @@ module powerbi.extensibility.visual {
          * Interface for ControlChart viewmodel.
          *
          * @interface
-         * @property {ChartDataPoint[]} dataPoints  - Set of data points the visual will render.
+         * @property {any[]} points                 - Set of data points the visual will render.
          * @property {any} minX                     - minimum value of X axis - can be date or number
          * @property {any} maxX                     - maximum value of X axis - can be date or number
          * @property {any} minY                     - minimum value of Y axis - can be number
          * @property {any} maxY                     - maximum value of Y axis - can be number
-         * @property {interface} data               - LineData - data point line
-         * @property {interface} stageDividerLine   - StatisticsData - contains info on line and labels
+         * @property {interface} data               - LineData - data point line style
+         * @property {string} backgroundColor       - Plot area color
+         * @property {interface} marker             - Marker size
+         * @property {interface} gridlines          - Gridline style
+         * @property {interface} subgroupDividerLine   - StatisticsData - contains info on line and labels
          * @property {interface} limitLine          - StatisticsData - contains info on line and labels
          * @property {interface} meanLine           - StatisticsData - contains info on line and labels
-         * @property {interface} xAxis              - AxisData - contains info on labels
-         * @property {interface} yAxis              - minimum value of X axis - can be date or number
-         * @property {boolean} showGridLines        - show gridlines
+         * @property {interface} xAxis              - AxisData - contains info on label style
+         * @property {interface} yAxis              - AxisData - contains info on label style
          * @property {boolean} isDateRange          - is the X axis a date or numeric range?
          * @property {boolean} runRule1             - run rule 1
          * @property {boolean} runRule2             - run rule 2
          * @property {boolean} runRule3             - run rule 3
+         * @property {string} ruleColor             - color of points matching rule
+         * @property {number} movingRange           - moving range window width
+         * @property {boolean} mRError              - moving range is larger than number of data points in a Subgroup
+         * @property {boolean} showmRWarning        - toggle error message if mRError
          */
     interface ControlChartViewModel {
-        dataPoints: ChartDataPoint[];
+        points: any[],
         minX: any;
         maxX: any;
         minY: number;
@@ -56,13 +62,14 @@ module powerbi.extensibility.visual {
         backgroundColor: string;
         marker: MarkerStyle;
         gridlines: GridLinesStyle;
-        stageDividerLine: StatisticsData;
+        subgroupDividerLine: StatisticsData;
         limitLine: StatisticsData;
         meanLine: StatisticsData;
         standardDeviations: number;
         xAxis: AxisData;
         yAxis: AxisData;
         isDateRange: boolean;
+        xAxisFormat: any;
         runRule1: boolean;
         runRule2: boolean;
         runRule3: boolean;
@@ -85,18 +92,18 @@ module powerbi.extensibility.visual {
     interface AxisData {
         AxisTitle: string;
         TitleSize: number;
-        TitleFont?: string;
+        TitleFont: string;
         TitleColor: string;
         AxisLabelSize: number;
-        AxisLabelFont?: string;
+        AxisLabelFont: string;
         AxisLabelColor: string;
-        AxisFormat: any;
+        AxisLabelFormat: any;
+        Rotation?: number;
     }
 
     interface StatisticsData {
-        text?: string;
         textSize: number;
-        textFont?: any;
+        textFont: any;
         textColor: string;
         lineColor: string;
         lineStyle: string;
@@ -108,18 +115,6 @@ module powerbi.extensibility.visual {
         lineStyle: string;
         show: boolean;
     }
-
-    /**
-     * Interface for ControlChart data points.
-     *
-     * @interface
-     * @property {any} xvalue               - Data value for point. - date or number
-     * @property {number} yValue            - y axis value.
-     */
-    interface ChartDataPoint {
-        xValue: any;
-        yValue: number;
-    }; 
 
     /**
          * Interface for ControlChart Stage.
@@ -138,7 +133,7 @@ module powerbi.extensibility.visual {
          * @property {number} lastId        - first index value in a stage - use this in calculating stats
          * @property {boolean} mrError      - if moving range is >= number of data points in each stage
          */
-    interface Stage {
+    interface Subgroup {
         lCL: number;
         uCL: number;
         mean: number;
@@ -165,7 +160,7 @@ module powerbi.extensibility.visual {
     function visualTransform(options: VisualUpdateOptions, host: IVisualHost): ControlChartViewModel {
         let dataViews = options.dataViews;
         let viewModel: ControlChartViewModel = {
-            dataPoints: [],
+            points: [],
             minX: null,
             maxX: null,
             minY: 0,
@@ -176,11 +171,12 @@ module powerbi.extensibility.visual {
             gridlines: null,
             xAxis: null,
             yAxis: null,
-            stageDividerLine: null,
+            subgroupDividerLine: null,
             meanLine: null,
             limitLine: null,
             standardDeviations: 3,
             isDateRange: true,
+            xAxisFormat: null,
             runRule1: false,
             runRule2: false,
             runRule3: false,
@@ -192,6 +188,9 @@ module powerbi.extensibility.visual {
 
         let defGridlineColor: string = '#c2c6c6';
         let defAxisLabelColor: string = '#000000';
+        let defMeanLineColor: string = '#35BF4D';
+        let defSubgroupLineColor: string = '#00C3FF';
+        let defLimitLineColor: string = '#FFA500';
 
         if (!dataViews
             || !dataViews[0]
@@ -206,99 +205,103 @@ module powerbi.extensibility.visual {
         let categorical = dataViews[0].categorical;
         let category = categorical.categories[0];
         let dataValue = categorical.values[0];
-        let ChartDataPoints: ChartDataPoint[] = [];  
-
+        let Points: any[] = [];  
         var xValues: PrimitiveValue[] = category.values;
         var yValues: PrimitiveValue[] = dataValue.values;
-
-        //var isXAxisUsable: boolean = false;// category.values[0] && ((Object.prototype.toString.call(category.values[0]) === '[object Number]') || (Object.prototype.toString.call(category.values[0]) === '[object Date]'));
         var isYAxisNumericData: boolean = false;// (dataValue.values[0] && Object.prototype.toString.call(dataValue.values[0]) === '[object Number]');
         var xAxisType: string = "NotUsable";
-
+        
         try{
-            if (category.source.type.dateTime.valueOf() == true || category.source.type.numeric.valueOf() == true) {
-                if (category.source.type.dateTime.valueOf() == true)
-                    xAxisType = "date";
-                else
-                    if(category.source.type.numeric.valueOf() == true)
-                        xAxisType = "numeric";
-            }
-
+            
+            if (category.source.type.dateTime.valueOf() == true)
+                xAxisType = "date";
+            else
+                if(category.source.type.numeric.valueOf() == true)
+                    xAxisType = "numeric";
+            
             if (dataValue.source.type.numeric.valueOf() == true)
                 isYAxisNumericData = true;
     
             if (xAxisType != "NotUsable" && isYAxisNumericData) {
                 for (let i = 0; i < xValues.length; i++) {
-                    ChartDataPoints.push({
-                        xValue: xValues[i],
-                        yValue: <number>yValues[i],
-                    });
+                    Points.push([xValues[i],<number>yValues[i]]);
                 }
-                var xAxisFormat: any;
+
+                let dvobjs = dataViews[0].metadata.objects;
+
+                var xAxisLabelFormat: any;
                 if (xAxisType == "date")
-                    xAxisFormat = getValue<string>(dataViews[0].metadata.objects, 'xAxis', 'dateFormat', '%d-%b-%y');
+                    xAxisLabelFormat = getValue<string>(dvobjs, 'xAxis', 'xAxisDateFormat', '%d-%b-%y');
                 else
-                    xAxisFormat = getValue<string>(dataViews[0].metadata.objects, 'xAxis', 'xAxisFormat', '.3s')
+                    xAxisLabelFormat = getValue<string>(dvobjs, 'xAxis', 'xAxisLabelFormat', '.3s')
 
                 let chartData: LineData = {
                     DataColor: getFill(dataViews[0], 'chart', 'dataColor', '#FF0000'),
                     LineColor: getFill(dataViews[0], 'chart', 'lineColor', '#0000FF'),
-                    LineStyle: getValue<string>(dataViews[0].metadata.objects, 'chart', 'lineStyle', '')
+                    LineStyle: getValue<string>(dvobjs, 'chart', 'lineStyle', '')
                 };
                 let meanLine: StatisticsData = {
-                    textColor: getFill(dataViews[0], 'statistics', 'meanLabelColor', '#008000'),
-                    textSize: getValue<number>(dataViews[0].metadata.objects, 'statistics', 'meanLabelSize', 10),
-                    lineColor: getFill(dataViews[0], 'statistics', 'meanLineColor', '#32CD32'),
-                    lineStyle: getValue<string>(dataViews[0].metadata.objects, 'statistics', 'meanLineStyle', '6,4'),
-                    show: getValue<boolean>(dataViews[0].metadata.objects, 'statistics', 'showMean', true)
+                    textColor: getFill(dataViews[0], 'statistics', 'meanLabelColor', defMeanLineColor),
+                    textSize: getValue<number>(dvobjs, 'statistics', 'meanLabelSize', 10),
+                    textFont: getValue<string>(dvobjs, 'statistics', 'meanLabelfontFamily', 'Arial'),
+                    lineColor: getFill(dataViews[0], 'statistics', 'meanLineColor', defMeanLineColor),
+                    lineStyle: getValue<string>(dvobjs, 'statistics', 'meanLineStyle', '6,4'),
+                    show: getValue<boolean>(dvobjs, 'statistics', 'showMean', true)
                 };
                 let stageDividerLine: StatisticsData = {
-                    textColor: getFill(dataViews[0], 'statistics', 'stageLabelColor', '#FFD700'),
-                    textSize: getValue<number>(dataViews[0].metadata.objects, 'statistics', 'stageDividerLabelSize', 12),
-                    lineColor: getFill(dataViews[0], 'statistics', 'stageDividerColor', '#FFD700'),
-                    lineStyle: getValue<string>(dataViews[0].metadata.objects, 'statistics', 'stageDividerLineStyle', '10,4'),
-                    show: getValue<boolean>(dataViews[0].metadata.objects, 'statistics', 'showDividers', true)
+                    textColor: getFill(dataViews[0], 'subgroups', 'subgroupLabelColor', defSubgroupLineColor),
+                    textSize: getValue<number>(dvobjs, 'subgroups', 'subgroupDividerLabelSize', 12),
+                    textFont: getValue<string>(dvobjs, 'subgroups', 'subgroupDividerfontFamily', 'Arial'),
+                    lineColor: getFill(dataViews[0], 'subgroups', 'subgroupDividerColor', defSubgroupLineColor),
+                    lineStyle: getValue<string>(dvobjs, 'subgroups', 'subgroupDividerLineStyle', '10,4'),
+                    show: getValue<boolean>(dvobjs, 'subgroups', 'showDividers', true)
                 };
                 let limitLine: StatisticsData = {
-                    textColor: getFill(dataViews[0], 'statistics', 'limitLabelColor', '#FFA500'),
-                    textSize: getValue<number>(dataViews[0].metadata.objects, 'statistics', 'limitLabelSize', 10),
-                    lineColor: getFill(dataViews[0], 'statistics', 'limitLineColor', '#FFA500'),
-                    lineStyle: getValue<string>(dataViews[0].metadata.objects, 'statistics', 'limitLineStyle', '6,4'),
-                    show: getValue<boolean>(dataViews[0].metadata.objects, 'statistics', 'showLimits', true)
+                    textColor: getFill(dataViews[0], 'subgroups', 'limitLabelColor', defLimitLineColor),
+                    textSize: getValue<number>(dvobjs, 'subgroups', 'limitLabelSize', 10),
+                    textFont: getValue<string>(dvobjs, 'subgroups', 'limitLabelfontFamily', 'Arial'),
+                    lineColor: getFill(dataViews[0], 'subgroups', 'limitLineColor', defLimitLineColor),
+                    lineStyle: getValue<string>(dvobjs, 'subgroups', 'limitLineStyle', '6,4'),
+                    show: getValue<boolean>(dvobjs, 'subgroups', 'showLimits', true)
                 };
                 let xAxisData: AxisData = {
-                    AxisTitle: getValue<string>(dataViews[0].metadata.objects, 'xAxis', 'xAxisTitle', 'Default Value'),
+                    AxisTitle: getValue<string>(dvobjs, 'xAxis', 'xAxisTitle', 'Default Value'),
                     TitleColor: getFill(dataViews[0], 'xAxis', 'xAxisTitleColor', defAxisLabelColor),
-                    TitleSize: getValue<number>(dataViews[0].metadata.objects, 'xAxis', 'xAxisTitleSize', 12),
-                    AxisLabelSize: getValue<number>(dataViews[0].metadata.objects, 'xAxis', 'xAxisLabelSize', 12),
+                    TitleSize: getValue<number>(dvobjs, 'xAxis', 'xAxisTitleSize', 12),
+                    TitleFont: getValue<string>(dvobjs, 'xAxis', 'xAxisTitlefontFamily', 'Arial'),
+                    AxisLabelSize: getValue<number>(dvobjs, 'xAxis', 'xAxisLabelSize', 12),
                     AxisLabelColor: getFill(dataViews[0], 'xAxis', 'xAxisLabelColor', defAxisLabelColor),
-                    AxisFormat: xAxisFormat
+                    AxisLabelFont: getValue<string>(dvobjs, 'xAxis', 'xAxisLabelfontFamily', 'Arial'),
+                    Rotation: getValue<number>(dvobjs, 'xAxis', 'xAxisLabelRotation', 0),
+                    AxisLabelFormat: xAxisLabelFormat
                 };
                 let yAxisData: AxisData = {
-                    AxisTitle: getValue<string>(dataViews[0].metadata.objects, 'yAxis', 'yAxisTitle', 'Default Value'),
+                    AxisTitle: getValue<string>(dvobjs, 'yAxis', 'yAxisTitle', 'Default Value'),
                     TitleColor: getFill(dataViews[0], 'yAxis', 'yAxisTitleColor', defAxisLabelColor),
-                    TitleSize: getValue<number>(dataViews[0].metadata.objects, 'yAxis', 'yAxisTitleSize', 12),
-                    AxisLabelSize: getValue<number>(dataViews[0].metadata.objects, 'yAxis', 'yAxisLabelSize', 12),
+                    TitleSize: getValue<number>(dvobjs, 'yAxis', 'yAxisTitleSize', 12),
+                    TitleFont: getValue<string>(dvobjs, 'yAxis', 'yAxisTitlefontFamily', 'Arial'),
+                    AxisLabelSize: getValue<number>(dvobjs, 'yAxis', 'yAxisLabelSize', 12),
+                    AxisLabelFont: getValue<string>(dvobjs, 'yAxis', 'yAxisLabelfontFamily', 'Arial'),
                     AxisLabelColor: getFill(dataViews[0], 'yAxis', 'yAxisLabelColor', defAxisLabelColor),
-                    AxisFormat: getValue<string>(dataViews[0].metadata.objects, 'yAxis', 'yAxisFormat', '.3s')
+                    AxisLabelFormat: getValue<string>(dvobjs, 'yAxis', 'yAxisLabelFormat', '.3s')
                 };
                 let Marker: MarkerStyle = {
-                    MarkerSize: getValue<number>(dataViews[0].metadata.objects, 'chart', 'markerSize', 3),
+                    MarkerSize: getValue<number>(dvobjs, 'chart', 'markerSize', 3),
                 }
                 let GridLines: GridLinesStyle = {
                     lineColor: getFill(dataViews[0], 'chart', 'gridlinesColor', defGridlineColor),
-                    lineStyle: getValue<string>(dataViews[0].metadata.objects, 'chart', 'gridlinesStyle', '1,4'),
-                    show: getValue<boolean>(dataViews[0].metadata.objects, 'chart', 'showGridLines', true)
+                    lineStyle: getValue<string>(dvobjs, 'chart', 'gridlinesStyle', '1,4'),
+                    show: getValue<boolean>(dvobjs, 'chart', 'showGridLines', true)
                 }
 
-                var mRange: number = getValue<number>(dataViews[0].metadata.objects, 'statistics', 'movingRange', 2);
+                var mRange: number = getValue<number>(dvobjs, 'statistics', 'movingRange', 2);
                 if (mRange < 2 || mRange > 50)
                     mRange = 2
                 else
                     mRange = Math.round(mRange);
 
-                return {
-                    dataPoints: ChartDataPoints,
+                return {                    
+                    points: Points,
                     minX: null,
                     maxX: null,
                     minY: 0,
@@ -309,18 +312,19 @@ module powerbi.extensibility.visual {
                     gridlines: GridLines,
                     xAxis: xAxisData,
                     yAxis: yAxisData,
-                    stageDividerLine: stageDividerLine,
+                    subgroupDividerLine: stageDividerLine,
                     limitLine: limitLine,
                     meanLine: meanLine,
-                    standardDeviations: getValue<number>(dataViews[0].metadata.objects, 'statistics', 'standardDeviations', 3),             
-                    isDateRange: (xAxisType == "date") || (xAxisType == "numeric"),
-                    runRule1: getValue<boolean>(dataViews[0].metadata.objects, 'rules', 'runRule1', false),
-                    runRule2: getValue<boolean>(dataViews[0].metadata.objects, 'rules', 'runRule2', false),
-                    runRule3: getValue<boolean>(dataViews[0].metadata.objects, 'rules', 'runRule3', false),
+                    standardDeviations: getValue<number>(dvobjs, 'statistics', 'standardDeviations', 3),             
+                    isDateRange: (xAxisType == "date"),
+                    xAxisFormat: xAxisLabelFormat,
+                    runRule1: getValue<boolean>(dvobjs, 'rules', 'runRule1', false),
+                    runRule2: getValue<boolean>(dvobjs, 'rules', 'runRule2', false),
+                    runRule3: getValue<boolean>(dvobjs, 'rules', 'runRule3', false),
                     ruleColor: getFill(dataViews[0], 'rules', 'ruleColor', '#FFFF00'),
                     movingRange: mRange,
                     mRError: false,
-                    showmRWarning: getValue<boolean>(dataViews[0].metadata.objects, 'statistics', 'showmRWarning', true)
+                    showmRWarning: getValue<boolean>(dvobjs, 'statistics', 'showmRWarning', true)
                 }
             }
             else {
@@ -335,7 +339,7 @@ module powerbi.extensibility.visual {
     export class ControlChart implements IVisual {
         private host: IVisualHost;
         private dataView: DataView;
-        private chartStages: Stage[];
+        private subgroups: Subgroup[];
         private controlChartViewModel: ControlChartViewModel;
         private svgRoot: d3.Selection<SVGElementInstance>;
         private svgGroupMain: d3.Selection<SVGElementInstance>;
@@ -346,7 +350,7 @@ module powerbi.extensibility.visual {
         private meanLine = [];
         private uclLines = [];
         private lclLines = [];
-        private stageDividers = [];
+        private subgroupDividers = [];
         private dots;
         private tooltipServiceWrapper: ITooltipServiceWrapper;
 
@@ -373,36 +377,35 @@ module powerbi.extensibility.visual {
             this.svgRoot
                 .attr("width", options.viewport.width)
                 .attr("height", options.viewport.height);
-
-            if (this.controlChartViewModel && this.controlChartViewModel.dataPoints[0]) { //check if this detects empty viewModel
+            
+            if (this.controlChartViewModel && this.controlChartViewModel.points[0]) { //check if this detects empty viewModel
                 var plot = this.plot;
-                this.GetStages();                                                   //determine stage groups
+                this.GetSubgroups();                                                //determine subgroups
                 this.CalcStats();                                                   //calc mean and sd
                 this.CreateAxes(options.viewport.width, options.viewport.height); 
                 if (this.controlChartViewModel.meanLine.show)
                     this.PlotMean();                                                //mean line
-                if (this.controlChartViewModel.stageDividerLine.show)
-                    this.DrawStageDividers();                                       //stage changes
+                if (this.controlChartViewModel.subgroupDividerLine.show)
+                    this.DrawSubgroupDividers();                                    //subgroup changes
                 if (this.controlChartViewModel.limitLine.show)
                     this.PlotControlLimits();                                       //lcl and ucl
                 this.PlotData();                                                    //plot basic raw data --- need to check for valid data
                 this.ApplyRules();
                 this.DrawMRWarning();
-                
-                //put border around plot area
-                //var borderPath = 
-                /* this.svgGroupMain.append("rect")
-                    .attr("x", 0)
-                    .attr("y", 0)
-                    .attr("height", plot.height)
-                    .attr("width", plot.width)
-                    .style("stroke", "grey")
-                    .style("fill", "none")
-                    .style("stroke-width", 1);  */
-
             }
+        }      
+        
+        private RotationTranslate(angle: number, label:any){
+            var radAngle: number = angle * Math.PI/180;
+            var sinAngle = Math.sin(radAngle);
+            var lenText: number = label.toString().length;
+            var textSize: number = this.controlChartViewModel.xAxis.AxisLabelSize;
+            var xOffset: number = textSize * sinAngle;
+            var yOffset: number = Math.abs(sinAngle) * lenText;
+            return xOffset + "," + yOffset;
         }
 
+        
         private CreateAxes(viewPortWidth: number, viewPortHeight: number) {
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
             var xAxisOffset: number = 80; //60
@@ -413,7 +416,7 @@ module powerbi.extensibility.visual {
                 yAxisOffset: yAxisOffset,
                 xOffset: this.padding + xAxisOffset,
                 yOffset: this.padding,
-                width: viewPortWidth - (this.padding + xAxisOffset) * 2,  //  (this.padding * 2) - (2 * xAxisOffset),
+                width: viewPortWidth - (this.padding + xAxisOffset) * 2, 
                 height: viewPortHeight - (this.padding * 2) - yAxisOffset,
             };
             this.plot = plot;
@@ -424,24 +427,24 @@ module powerbi.extensibility.visual {
                 transform: 'translate(' + plot.xOffset + ',' + plot.yOffset + ')'
             });
             
-            //add border around plot area
+            //add shading area to plot area
             this.svgGroupMain.append("rect")
                 .attr("x", 0)
                 .attr("y", 0)
                 .attr("height", plot.height)
                 .attr("width", plot.width)
-                .style("stroke", "grey")
                 .style("fill", viewModel.backgroundColor)
-                .style("stroke-width", 1); 
+                .style("stroke-width", 0);
+           
                       
             let vmXaxis = viewModel.xAxis;
             let vmYaxis = viewModel.yAxis;
 
             this.GetMinMaxX();
             var xScale;
-            var xFormat;
-            xFormat = d3.time.format(vmXaxis.AxisFormat);
+            var xFormat;            
             if (viewModel.isDateRange) {
+                xFormat = d3.time.format(viewModel.xAxisFormat);
                 xScale = d3.time.scale()
                     .range([0, plot.width])
                     .domain([viewModel.minX, viewModel.maxX])
@@ -452,7 +455,7 @@ module powerbi.extensibility.visual {
                     .range([0, plot.width])
                     .domain([viewModel.minX, viewModel.maxX])
                     .nice();
-                xFormat = d3.format(vmXaxis.AxisFormat);
+                xFormat = d3.format(viewModel.xAxisFormat);                
             }
 
             this.xScale = xScale;           
@@ -460,39 +463,56 @@ module powerbi.extensibility.visual {
             var xAxis = d3.svg.axis()
                 .scale(xScale)
                 .orient('bottom')
-                .innerTickSize(-plot.height)
-                .tickPadding(14)
-                .tickFormat(xFormat);
-
-            if (!viewModel.gridlines.show) {
-                xAxis.innerTickSize(0);
-            }
+                //.tickFormat(xFormat);
+                .tickFormat(function (d) { return xFormat(d) });
 
             this.svgGroupMain
                 .append('g')
                 .attr('class', 'x axis')
-                .style('fill', vmXaxis.AxisLabelColor)
                 .attr('transform', 'translate(0,' + plot.height + ')')
                 .call(xAxis)
-                .style("font-size", vmXaxis.AxisLabelSize + 'px');
+                .selectAll("text")
+                //.attr("transform", "translate(" + vmXaxis.Rotation/90 * 12 + " , 0 )rotate(" + vmXaxis.Rotation + ")")
+                .attr("transform", "translate(" + this.RotationTranslate(vmXaxis.Rotation, function(d){return d.toString()}) + ")rotate(" + vmXaxis.Rotation + ")")// (180/ Math.PI) * Math.cos( Math.PI/180 * vmXaxis.Rotation)/2,0)})
+                .style("text-anchor", "middle")
+                .style('fill', vmXaxis.AxisLabelColor)
+                .style("font-size", vmXaxis.AxisLabelSize + 'px')
+                .style("font-family", vmXaxis.AxisLabelFont);
+           
+            //x grid lines
+            this.svgGroupMain.append("g")			
+                .attr("class", "grid")
+                .attr("transform", "translate(0," + plot.height + ")")
+                .call(xAxis
+                    .tickSize(-plot.height)
+                    .tickFormat(""));
+                      
+            //top and right frame lines
+            this.svgGroupMain.append("g").append("line")          // attach a line
+                .style("stroke", "lightgrey")  // colour the line
+                .style("stroke-width", 1)
+                .style("fill", "none")
+                .style("shape-rendering", "crispEdges")
+                .attr("x1", 0)     // x position of the first end of the line
+                .attr("y1", 0)      // y position of the first end of the line
+                .attr("x2", plot.width)     // x position of the second end of the line
+                .attr("y2", 0);
+         
+            this.svgGroupMain.append("g").append("line")          // attach a line
+                .style("stroke", "lightgrey")  // colour the line
+                .style("stroke-width", 1)
+                .style("fill", "none")
+                .style("shape-rendering", "crispEdges")
+                .attr("x1", plot.width)     // x position of the first end of the line
+                .attr("y1", 0)      // y position of the first end of the line
+                .attr("x2", plot.width)     // x position of the second end of the line
+                .attr("y2", plot.height);
 
-           /*  var xGridlineAxis = d3.svg.axis()
-                .scale(xScale)
-                .orient('bottom')
-                .innerTickSize(8)
-                .tickPadding(10)
-                .outerTickSize(6); */
-       
-            /* this.svgGroupMain
-                .append('g')
-                .attr('class', 'gridLine')
-                .attr('transform', 'translate(0,' + plot.height + ')')
-                .call(xGridlineAxis)
-                .style("font-size", '0px'); */
 
             //handle uCL and lCL
-            var dataMax = d3.max(viewModel.dataPoints, function (d) { return d.yValue });
-            var dataMin = d3.min(viewModel.dataPoints, function (d) { return d.yValue });
+            var dataMax = d3.max(viewModel.points, function (d) { return d[1] });
+            var dataMin = d3.min(viewModel.points, function (d) { return d[1] });
+
             var lclLines = this.lclLines;
             var uclLines = this.uclLines;
             var yMax: number = d3.max(uclLines, function (d) { return d['y1'] });
@@ -518,43 +538,31 @@ module powerbi.extensibility.visual {
             this.controlChartViewModel.minY = yMin;
             this.controlChartViewModel.maxY = yMax;
 
-            var yformatValue = d3.format(vmYaxis.AxisFormat);
+            var yformatValue = d3.format(vmYaxis.AxisLabelFormat);
             var yAxis = d3.svg.axis()
                 .scale(yScale)
                 .orient('left')
-                .innerTickSize(-plot.width)
-                .ticks(8)
-                .tickPadding(10)
                 .tickFormat(function (d) { return yformatValue(d) });
-
-            if (!viewModel.gridlines.show) {
-                yAxis
-                    .innerTickSize(0)
-                    .tickPadding(10);                
-            }
 
             this.svgGroupMain
                 .append('g')
                 .attr('class', 'y axis')
+                .call(yAxis)
+                .selectAll("text")                
                 .style('fill', vmYaxis.AxisLabelColor)
                 .style("font-size", vmYaxis.AxisLabelSize + 'px')
-                .call(yAxis);
+                .style("font-family", vmYaxis.AxisLabelFont);
             
-            /* var yGridlineAxis = d3.svg.axis()
-                .scale(yScale)
-                .orient('left')
-                .innerTickSize(8)
-                .tickPadding(10)
-                .outerTickSize(6); */
-
-         /*    this.svgGroupMain
-                .append('g')
-                .attr('class', 'gridLine')
-                .call(yGridlineAxis)
-                .style("font-size", '0px'); */
+            //y grid lines
+            this.svgGroupMain.append("g")			
+                .attr("class", "grid")
+                .call(yAxis
+                    .tickSize( -plot.width) 
+                    .tickFormat("")                                          
+                )               
+                .selectAll(".tick").each(function(d,i){if (d==0 ) this.remove();});
             
-            this.svgGroupMain.selectAll(".tick").attr("stroke", viewModel.gridlines.lineColor).attr("stroke-dasharray",  viewModel.gridlines.lineStyle);
-           
+            //axes titles
             this.svgGroupMain.append("text")
                 .attr("transform", "rotate(-90)")
                 .attr("y", 0 - xAxisOffset - 10)
@@ -563,6 +571,7 @@ module powerbi.extensibility.visual {
                 .style("text-anchor", "middle")
                 .style("font-size", vmYaxis.TitleSize + 'px')
                 .style("fill", vmYaxis.TitleColor)
+                .style("font-family", vmYaxis.TitleFont)
                 .text(vmYaxis.AxisTitle);
             this.svgGroupMain.append("text")
                 .attr("y", plot.height + yAxisOffset)
@@ -570,35 +579,33 @@ module powerbi.extensibility.visual {
                 .style("text-anchor", "middle")
                 .style("font-size", vmXaxis.TitleSize + 'px')
                 .style("fill", vmXaxis.TitleColor)
+                .style("font-family", vmXaxis.TitleFont)
                 .text(vmXaxis.AxisTitle);
+            
+            this.svgGroupMain.selectAll(".grid").attr("stroke-dasharray",  viewModel.gridlines.lineStyle);
+            this.svgGroupMain.selectAll(".grid .tick").style("stroke", viewModel.gridlines.lineColor)
+            if (!viewModel.gridlines.show) 
+                this.svgGroupMain.selectAll(".grid").remove();
+ 
         }
 
         private GetMinMaxX() {
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
-            let data = viewModel.dataPoints;
+            let dp = viewModel.points;
             var maxValue: any;
             var minValue: any;
 
             if (viewModel.isDateRange) {
-                minValue = new Date(data[0].xValue);
-                maxValue = new Date(data[0].xValue);
+                minValue = new Date();
+                maxValue = new Date();
             }
             else {
-                minValue = new Number(data[0].xValue);
-                maxValue = new Number(data[0].xValue);  
-            }
-            minValue = d3.min(viewModel.dataPoints, function (d) { return d.xValue });
-            maxValue = d3.max(viewModel.dataPoints, function (d) { return d.xValue });
-            
-           /*  for (var i in data) {
-                var dt = data[i].xValue;
-                if (maxValue < dt) {
-                    maxValue = dt;
-                }
-                if (minValue > dt) {
-                    minValue = dt;
-                }
-            } */
+                minValue = new Number();
+                maxValue = new Number();  
+            }        
+            minValue = d3.min(dp, function (d) { return d[0] });
+            maxValue = d3.max(dp, function (d) { return d[0] });
+
             this.controlChartViewModel.minX = minValue;
             this.controlChartViewModel.maxX = maxValue;
         }
@@ -606,16 +613,7 @@ module powerbi.extensibility.visual {
         private PlotData() {
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
             let data = viewModel.data;
-            var point = [];      
-
-            for (let i = 0; i < viewModel.dataPoints.length; i++) {
-                var ob = viewModel.dataPoints[i];
-                var x = ob.xValue;
-                var y = ob.yValue;
-                //creating line points                         
-                point.push([x, y]);
-            } 
-
+            let points = viewModel.points;
             // Line      
             var xScale = this.xScale;
             var yScale = this.yScale;
@@ -624,13 +622,13 @@ module powerbi.extensibility.visual {
                 .y(function (d) { return yScale(d[1]) });
             //add line
             this.svgGroupMain.append("svg:path").classed('trend_Line', true)
-                .attr("d", d3line2(point))
+                .attr("d", d3line2(points))
                 .style("stroke-width", '1.5px')
                 .style({ "stroke": data.LineColor, "stroke-dasharray": (data.LineStyle) })
                 .style("fill", 'none');
             //add dots
             var dots = this.svgGroupMain.attr("id", "groupOfCircles").selectAll("dot")
-                .data(point)
+                .data(points)
                 .enter().append("circle")
                 .style("fill", data.DataColor)
                 .attr("r", viewModel.marker.MarkerSize)
@@ -643,10 +641,10 @@ module powerbi.extensibility.visual {
             //add tooltip
             var xFormat;
             if (viewModel.isDateRange)
-                xFormat = d3.time.format(viewModel.xAxis.AxisFormat);
+                xFormat = d3.time.format(viewModel.xAxis.AxisLabelFormat);
             else
-                xFormat = d3.format(viewModel.xAxis.AxisFormat);
-            var yFormat = d3.format(viewModel.yAxis.AxisFormat);
+                xFormat = d3.format(viewModel.xAxis.AxisLabelFormat);
+            var yFormat = d3.format(viewModel.yAxis.AxisLabelFormat);
             this.tooltipServiceWrapper.addTooltip(dots,
                 (tooltipEvent: TooltipEventArgs<number>) => ControlChart.getTooltipData(tooltipEvent.data, data.DataColor, xFormat, yFormat),
                 (tooltipEvent: TooltipEventArgs<number>) => null);
@@ -660,8 +658,8 @@ module powerbi.extensibility.visual {
             }];
         }
 
-        private GetStages() {
-            let stage: Stage = {
+        private GetSubgroups() {
+            let subgroup: Subgroup = {
                 uCL: 0,
                 lCL: 0,
                 mean: 0,
@@ -675,8 +673,10 @@ module powerbi.extensibility.visual {
                 lastId: 0,
                 mRError: false
             };
-            this.chartStages = [];
-            let stages: Stage[] = [];
+            this.subgroups = [];
+            let stages: Subgroup[] = [];
+            let viewModel: ControlChartViewModel = this.controlChartViewModel;
+            let points = viewModel.points;
 
             var dataView = this.dataView;
             if (!dataView
@@ -685,92 +685,92 @@ module powerbi.extensibility.visual {
                 || !dataView.categorical.values)
                 return [];
 
-            var stageValue: string;
+            var subgroupValue: string;
             var categorical;
-            var hasStages: boolean;
+            var hasSubgroups: boolean;
             if (dataView.categorical.values.length == 1 || !dataView.categorical.values[1]) {
-                stageValue = '';
-                hasStages = false;
+                subgroupValue = '';
+                hasSubgroups = false;
             }
             else {
                 categorical = dataView.categorical;
-                stageValue = <string>categorical.values[1].values[0];
-                hasStages = true;
+                subgroupValue = <string>categorical.values[1].values[0];
+                hasSubgroups = true;
             }
-            let viewModel: ControlChartViewModel = this.controlChartViewModel;
-            stage.startX = viewModel.dataPoints[0].xValue;
-            var currentStage: string = stageValue;
-            stage.stage = stageValue;
-            for (let i = 0; i < viewModel.dataPoints.length; i++) {
-                var obj = viewModel.dataPoints[i];
+            
+            subgroup.startX = points[0][0];
+            var currentSubgroup: string = subgroupValue;
+            subgroup.stage = subgroupValue;
+            for (let i = 0; i < points.length; i++) {
+                var obj = points[i];
 
-                if (hasStages)
-                    stageValue = <string>categorical.values[1].values[i];
+                if (hasSubgroups)
+                    subgroupValue = <string>categorical.values[1].values[i];
 
-                if (currentStage == stageValue || !hasStages) {
-                    stage.sum = stage.sum + obj.yValue;
-                    stage.count++;
+                if (currentSubgroup == subgroupValue || !hasSubgroups) {
+                    subgroup.sum = subgroup.sum + obj[1];
+                    subgroup.count++;
                 }
                 else {
-                    if (stage.count > 0)
-                        stage.mean = stage.sum / stage.count;
+                    if (subgroup.count > 0)
+                        subgroup.mean = subgroup.sum / subgroup.count;
                     if (i > 0)
-                        stage.endX = viewModel.dataPoints[i - 1].xValue;
+                        subgroup.endX = points[i - 1][0];
                     else
-                        stage.endX = obj.xValue;
+                        subgroup.endX = obj[0];
 
-                    var nextStartDate: any = <any>(obj.xValue);
-                    var endDate: any = (viewModel.dataPoints[i - 1].xValue);
-                    stage.stageDividerX = ((nextStartDate.valueOf() + endDate.valueOf()) / 2);
+                    var nextStartDate: any = <any>(obj[0]);
+                    var endDate: any = (points[i - 1][0]);
+                    subgroup.stageDividerX = ((nextStartDate.valueOf() + endDate.valueOf()) / 2);
 
                     stages.push({
-                        startX: stage.startX,
-                        endX: stage.endX,
-                        count: stage.count,
-                        mean: stage.mean,
-                        sum: stage.sum,
+                        startX: subgroup.startX,
+                        endX: subgroup.endX,
+                        count: subgroup.count,
+                        mean: subgroup.mean,
+                        sum: subgroup.sum,
                         uCL: 0,
                         lCL: 0,
-                        stage: stage.stage,
-                        stageDividerX: stage.stageDividerX,
-                        firstId: stage.firstId,
+                        stage: subgroup.stage,
+                        stageDividerX: subgroup.stageDividerX,
+                        firstId: subgroup.firstId,
                         lastId: i - 1,
                         mRError: false
                     });
-                    stage.mean = obj.yValue;
-                    stage.count = 1;
-                    stage.sum = obj.yValue;
-                    stage.startX = obj.xValue;
-                    stage.firstId = i;
-                    stage.stage = stageValue;
+                    subgroup.mean = obj[1];
+                    subgroup.count = 1;
+                    subgroup.sum = obj[1];
+                    subgroup.startX = obj[0];
+                    subgroup.firstId = i;
+                    subgroup.stage = subgroupValue;
                 }
                 //set stage to last stage value
-                if (hasStages)
-                    currentStage = <string>categorical.values[1].values[i];
+                if (hasSubgroups)
+                    currentSubgroup = <string>categorical.values[1].values[i];
 
                 //last point
-                if (i == (viewModel.dataPoints.length - 1)) {
-                    if (stage.count > 0)
-                        stage.mean = stage.sum / stage.count;
-                    stage.endX = obj.xValue;
-                    stage.stage = stageValue;
+                if (i == (points.length - 1)) {
+                    if (subgroup.count > 0)
+                        subgroup.mean = subgroup.sum / subgroup.count;
+                    subgroup.endX = obj[0];
+                    subgroup.stage = subgroupValue;
                     stages.push({
-                        startX: stage.startX,
-                        endX: stage.endX,
-                        count: stage.count,
-                        mean: stage.mean,
-                        sum: stage.sum,
+                        startX: subgroup.startX,
+                        endX: subgroup.endX,
+                        count: subgroup.count,
+                        mean: subgroup.mean,
+                        sum: subgroup.sum,
                         uCL: 0,
                         lCL: 0,
-                        stage: stage.stage,
-                        stageDividerX: stage.endX,
-                        firstId: stage.firstId,
+                        stage: subgroup.stage,
+                        stageDividerX: subgroup.endX,
+                        firstId: subgroup.firstId,
                         lastId: i,
                         mRError: false
                     });
                 }
             }
-            this.chartStages = stages;
+            this.subgroups = stages;
         }
 
         private PlotMean() {
@@ -788,9 +788,9 @@ module powerbi.extensibility.visual {
 
             // x&#x0304; - symbol for x-bar
             var xbar = 0x0304;
-            var yformatValue = d3.format(viewModel.yAxis.AxisFormat);
+            var yformatValue = d3.format(viewModel.yAxis.AxisLabelFormat);
 
-            var stages = this.chartStages;
+            var stages = this.subgroups;
             var plot = this.plot;
             var meanText = this.svgGroupMain.selectAll("meanText")
                 .data(meanLine)
@@ -802,14 +802,15 @@ module powerbi.extensibility.visual {
                 .attr("text-anchor", "start")
                 .text(function (d) { return 'x' + String.fromCharCode(xbar) + ' = ' + yformatValue(d['y2']).toString() })
                 .style("font-size", mLine.textSize + 'px')
+                .style("font-family", mLine.textFont)
                 .style("fill", mLine.textColor);
 
             //add tooltip
             var xFormat;
             if (viewModel.isDateRange)
-                xFormat = d3.time.format(viewModel.xAxis.AxisFormat);
+                xFormat = d3.time.format(viewModel.xAxis.AxisLabelFormat);
             else
-                xFormat = d3.format(viewModel.xAxis.AxisFormat);
+                xFormat = d3.format(viewModel.xAxis.AxisLabelFormat);
 
             this.tooltipServiceWrapper.addTooltip(mean,
                 (tooltipEvent: TooltipEventArgs<number>) => ControlChart.getTooltipMeanData(tooltipEvent.data, mLine.textColor, 'Mean', yformatValue),
@@ -828,8 +829,9 @@ module powerbi.extensibility.visual {
             }];
         }
 
+
         private CalcStats() {
-            let stages = this.chartStages;
+            let stages = this.subgroups;
             var meanLine = [];
             var uclLines = [];
             var lclLines = [];
@@ -837,7 +839,7 @@ module powerbi.extensibility.visual {
             var lCL: number;
             var stageDividers = [];
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
-            let data = viewModel.dataPoints;
+            let data = viewModel.points;
             var numsds = viewModel.standardDeviations;
             var mr: number = viewModel.movingRange;
             var d2: number = this.LookUpd2(viewModel.movingRange);
@@ -858,14 +860,14 @@ module powerbi.extensibility.visual {
                 else {
                     for (let j = stages[i].firstId + mr - 1; j <= stages[i].lastId; j++) {
                         //for each data point in the stage
-                        mrMin = data[j - 1].yValue;
-                        mrMax = data[j - 1].yValue;
+                        mrMin = data[j - 1][1];
+                        mrMax = data[j - 1][1];
                         //move thru stage data points using mr window 
                         for (let k = j; k >= j - mr + 1; k--) {
-                            if (mrMin > data[k].yValue)
-                                mrMin = data[k].yValue;
-                            if (mrMax < data[k].yValue)
-                                mrMax = data[k].yValue;
+                            if (mrMin > data[k][1])
+                                mrMin = data[k][1];
+                            if (mrMax < data[k][1])
+                                mrMax = data[k][1];
                         }
                         mrRangeSum = mrRangeSum + Math.abs(mrMax - mrMin);
                     }
@@ -884,6 +886,9 @@ module powerbi.extensibility.visual {
                     }
                 }
                 else {
+                    //show left divider
+                    stageDividers.push({ x1: stages[i].startX, prevDividerX: 0, stageName: stages[i].stage });
+
                     meanLine.push({ x1: stages[i].startX, y1: stages[i].mean, x2: stages[i].stageDividerX, y2: stages[i].mean });
                     stageDividers.push({ x1: stages[i].stageDividerX, prevDividerX: stages[i].startX, stageName: stages[i].stage });
                     if (!stages[i].mRError) {
@@ -892,11 +897,11 @@ module powerbi.extensibility.visual {
                     }
                 }
             }
-            this.chartStages = stages;
+            this.subgroups = stages;
             this.meanLine = meanLine;
             this.lclLines = lclLines;
             this.uclLines = uclLines;
-            this.stageDividers = stageDividers;
+            this.subgroupDividers = stageDividers;
         }
 
         private DrawMRWarning() {
@@ -908,24 +913,23 @@ module powerbi.extensibility.visual {
                     .attr("y", yAxisOffset)
                     .attr("x", (plot.width / 2))
                     .style("text-anchor", "middle")
-                    .style("font-size", '20px')
+                    .style("font-size", '12px')
                     .style("fill", 'red')
                     .text('Selected Moving Range is greater than the number of data points in a Subgroup');
             }
         }
 
-        private DrawStageDividers() {
+        private DrawSubgroupDividers() {
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
-            let stageDiv = viewModel.stageDividerLine;
+            let stageDiv = viewModel.subgroupDividerLine;
             var plot = this.plot;
-            var stageDividers = this.stageDividers;
+            var stageDividers = this.subgroupDividers;
             var xScale = this.xScale;
 
             if(stageDividers.length > 1){ //only show where there are more than one stage
                 this.svgGroupMain.selectAll("divider")
                     .data(stageDividers)
                     .enter().append("polyline")
-                    //.attr("points", function (d) { return xScale(d['x1']).toString() + "," + "0," + xScale(d['x1']).toString() + "," + plot.height.toString() })
                     .attr("points", function (d) {if(xScale(d['x1']) < plot.width) return xScale(d['x1']).toString() + "," + "0," + xScale(d['x1']).toString() + "," + plot.height.toString() })
                     .style({ "stroke": stageDiv.lineColor, "stroke-width": 1.5, "stroke-dasharray": (stageDiv.lineStyle) });
                 var dividerText = this.svgGroupMain.selectAll("dividerText")
@@ -936,8 +940,9 @@ module powerbi.extensibility.visual {
                     .attr("dx", ".35em")
                     .attr("dy", "1em")
                     .attr("text-anchor", "start")
-                    .text(function (d) { return d['stageName'].toString()  })
+                    .text(function (d) {if(xScale(d['prevDividerX']) >0) return d['stageName'].toString()  })
                     .style("font-size", stageDiv.textSize + 'px')
+                    .style("font-family", stageDiv.textFont)
                     .style("fill", stageDiv.textColor);
             }
 
@@ -972,9 +977,9 @@ module powerbi.extensibility.visual {
                 .enter().append("polyline")
                 .attr("points", function (d) { return xScale(d['x1']).toString() + "," + yScale(d['y1']).toString() + "," + xScale(d['x2']).toString() + "," + yScale(d['y2']).toString() })
                 .style({ "stroke": limitLine.lineColor, "stroke-width": 1.5, "stroke-dasharray": (limitLine.lineStyle) });
-            var yformatValue = d3.format(viewModel.yAxis.AxisFormat);
+            var yformatValue = d3.format(viewModel.yAxis.AxisLabelFormat);
 
-            var stages = this.chartStages;
+            var stages = this.subgroups;
             var plot = this.plot;
 
             var uclText = this.svgGroupMain.selectAll("uclText")
@@ -987,6 +992,7 @@ module powerbi.extensibility.visual {
                 .attr("text-anchor", "start")
                 .text(function (d) { return 'UCL = ' + yformatValue(d['y1']).toString() })
                 .style("font-size", limitLine.textSize + 'px')
+                .style("font-family", limitLine.textFont)
                 .style("fill", limitLine.textColor);
 
             var lclText = this.svgGroupMain.selectAll("lclText")
@@ -999,10 +1005,11 @@ module powerbi.extensibility.visual {
                 .attr("text-anchor", "start")
                 .text(function (d) { return 'LCL = ' + yformatValue(d['y1']).toString() })
                 .style("font-size", limitLine.textSize + 'px')
+                .style("font-family", limitLine.textFont)
                 .style("fill", limitLine.textColor);
 
             //add tooltip
-            var yFormat = d3.format(viewModel.yAxis.AxisFormat);
+            var yFormat = d3.format(viewModel.yAxis.AxisLabelFormat);
             this.tooltipServiceWrapper.addTooltip(lclLine,
                 (tooltipEvent: TooltipEventArgs<number>) => ControlChart.getTooltipLimitData(tooltipEvent.data, limitLine.textColor, 'LCL', yFormat),
                 (tooltipEvent: TooltipEventArgs<number>) => null);
@@ -1029,28 +1036,28 @@ module powerbi.extensibility.visual {
             }];
         }
 
+
         private ApplyRules() {
-            let chartStages = this.chartStages;
             //rule 1 - highlight over/below UCL/LCL
             var consecutiveUPoints = [];
             var consecutiveLPoints = [];
             var consecIncPoints = [];
             var consecDecPoints = [];
             var meanPoints = [];
-            let stages = this.chartStages;
+            let stages = this.subgroups;
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
-            let data = viewModel.dataPoints;
+            let data = viewModel.points;
             for (let i = 0; i < stages.length; i++) {
                 for (let j = stages[i].firstId; j <= stages[i].lastId; j++) {
                     //Rule #1 - outside LCL and UCL
                     if (viewModel.runRule1)
-                        if (stages[i].uCL < data[j].yValue || stages[i].lCL > data[j].yValue)
+                        if (stages[i].uCL < data[j][1] || stages[i].lCL > data[j][1])
                             meanPoints.push([j]);
 
                     //Rule #2 - over 5 incr or decr
                     if (viewModel.runRule2) {
                         if (j > 0) {
-                            if (data[j].yValue > data[j - 1].yValue)
+                            if (data[j].yValue > data[j - 1][1])
                                 consecIncPoints.push([j])
                             else {
                                 if (consecIncPoints.length > 5)
@@ -1058,7 +1065,7 @@ module powerbi.extensibility.visual {
                                 consecIncPoints = [];
                                 consecIncPoints.push([j]);
                             }
-                            if (data[j].yValue < data[j - 1].yValue)
+                            if (data[j].yValue < data[j - 1][1])
                                 consecDecPoints.push([j])
                             else {
                                 if (consecDecPoints.length > 5)
@@ -1174,6 +1181,8 @@ module powerbi.extensibility.visual {
                 return 1;
         }
 
+       
+
         public enumerateObjectInstances(options: EnumerateVisualObjectInstancesOptions): VisualObjectInstance[] {
             var instances: VisualObjectInstance[] = [];
             var viewModel = this.controlChartViewModel;
@@ -1204,32 +1213,26 @@ module powerbi.extensibility.visual {
                     };
                     instances.push(config);
                     break;
-                case 'statistics':
+                case 'subgroups':
                     var config: VisualObjectInstance = {
                         objectName: objectName,
                         selector: null,
                         properties: {
-                            showDividers: viewModel.stageDividerLine.show,
-                            stageDividerColor: viewModel.stageDividerLine.lineColor,
-                            stageLabelColor: viewModel.stageDividerLine.textColor,
-                            stageDividerLineStyle: viewModel.stageDividerLine.lineStyle,
-                            stageDividerLabelSize: viewModel.stageDividerLine.textSize,
+                            showDividers: viewModel.subgroupDividerLine.show, 
+                            subgroupDividerColor: viewModel.subgroupDividerLine.lineColor,
+                            subgroupDividerLineStyle: viewModel.subgroupDividerLine.lineStyle,
+                            subgroupLabelColor: viewModel.subgroupDividerLine.textColor,
+                            subgroupDividerLabelSize: viewModel.subgroupDividerLine.textSize,
+                            subgroupDividerfontFamily: viewModel.subgroupDividerLine.textFont,
                             showLimits: viewModel.limitLine.show,
                             limitLineColor: viewModel.limitLine.lineColor,
+                            limitLineStyle: viewModel.limitLine.lineStyle,  
                             limitLabelColor: viewModel.limitLine.textColor,
                             limitLabelSize: viewModel.limitLine.textSize,
-                            limitLineStyle: viewModel.limitLine.lineStyle,
-                            showMean: viewModel.meanLine.show,
-                            meanLineColor: viewModel.meanLine.lineColor,
-                            meanLabelColor: viewModel.meanLine.textColor,
-                            meanLabelSize: viewModel.meanLine.textSize,
-                            meanLineStyle: viewModel.meanLine.lineStyle,
-                            standardDeviations: viewModel.standardDeviations,
-                            movingRange: viewModel.movingRange,
-                            showmRWarning: viewModel.showmRWarning
+                            limitLabelfontFamily: viewModel.limitLine.textFont                                                     
                         },
                         validValues: {
-                            stageDividerLabelSize: {
+                            subgroupDividerLabelSize: {
                                 numberRange: {
                                     min: 4,
                                     max: 30
@@ -1240,7 +1243,27 @@ module powerbi.extensibility.visual {
                                     min: 4,
                                     max: 30
                                 }
-                            },
+                            }
+                        }
+                    };
+                    instances.push(config);
+                    break;
+                case 'statistics':
+                    var config: VisualObjectInstance = {
+                        objectName: objectName,
+                        selector: null,
+                        properties: {                            
+                            showMean: viewModel.meanLine.show,
+                            meanLineColor: viewModel.meanLine.lineColor,
+                            meanLineStyle: viewModel.meanLine.lineStyle,
+                            meanLabelColor: viewModel.meanLine.textColor,
+                            meanLabelSize: viewModel.meanLine.textSize,
+                            meanLabelfontFamily: viewModel.meanLine.textFont,                            
+                            standardDeviations: viewModel.standardDeviations,
+                            movingRange: viewModel.movingRange,
+                            showmRWarning: viewModel.showmRWarning
+                        },
+                        validValues: {                            
                             meanLabelSize: {
                                 numberRange: {
                                     min: 4,
@@ -1258,7 +1281,19 @@ module powerbi.extensibility.visual {
                     instances.push(config);
                     break;
                 case 'xAxis':
-                    if (!viewModel.isDateRange) {
+                   //if (!viewModel.isDateRange) {
+                   
+                        var dateformat: string = "%d-%b-%y";
+                        var numericformat: string = ".3s";
+                        if(viewModel.isDateRange){
+                            dateformat = viewModel.xAxisFormat;                        
+                           // numericformat = null;
+                        }
+                        else{
+                            numericformat = viewModel.xAxisFormat;                        
+                            //dateformat = null;
+                        }
+
                         var config: VisualObjectInstance = {
                             objectName: objectName,
                             selector: null,
@@ -1266,9 +1301,13 @@ module powerbi.extensibility.visual {
                                 xAxisTitle: viewModel.xAxis.AxisTitle,
                                 xAxisTitleColor: viewModel.xAxis.TitleColor,
                                 xAxisTitleSize: viewModel.xAxis.TitleSize,
+                                xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
                                 xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
                                 xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
-                                xAxisFormat: viewModel.xAxis.AxisFormat
+                                xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
+                                xAxisLabelFormat: numericformat,
+                                xAxisDateFormat: dateformat,
+                                xAxisLabelRotation: viewModel.xAxis.Rotation
                             },
                             validValues: {
                                 xAxisTitleSize: {
@@ -1282,11 +1321,17 @@ module powerbi.extensibility.visual {
                                         min: 4,
                                         max: 30
                                     }
+                                },
+                                xAxisLabelRotation: {
+                                    numberRange:  {
+                                        min: 0,
+                                        max: 360
+                                    }
                                 }
                             }
                         };
-                    }
-                    else {
+                    //}
+                   /*  else {
                         var config: VisualObjectInstance = {
                             objectName: objectName,
                             selector: null,
@@ -1294,9 +1339,12 @@ module powerbi.extensibility.visual {
                                 xAxisTitle: viewModel.xAxis.AxisTitle,
                                 xAxisTitleColor: viewModel.xAxis.TitleColor,
                                 xAxisTitleSize: viewModel.xAxis.TitleSize,
+                                xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
                                 xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
                                 xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
-                                dateFormat: viewModel.xAxis.AxisFormat
+                                xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
+                                dateFormat: viewModel.xAxis.AxisLabelFormat,
+                                xAxisLabelRotation: viewModel.xAxis.Rotation                                
                             },
                             validValues: {
                                 xAxisTitleSize: {
@@ -1310,10 +1358,16 @@ module powerbi.extensibility.visual {
                                         min: 4,
                                         max: 30
                                     }
+                                },
+                                xAxisLabelRotation: {
+                                    numberRange:  {
+                                        min: 0,
+                                        max: 360
+                                    }
                                 }
                             }
                         };
-                    }
+                    } */
                     instances.push(config);
                     break;
                 case 'yAxis':
@@ -1324,9 +1378,11 @@ module powerbi.extensibility.visual {
                             yAxisTitle: viewModel.yAxis.AxisTitle,
                             yAxisTitleColor: viewModel.yAxis.TitleColor,
                             yAxisTitleSize: viewModel.yAxis.TitleSize,
+                            yAxisTitlefontFamily: viewModel.yAxis.TitleFont,
                             yAxisLabelColor: viewModel.yAxis.AxisLabelColor,
-                            yAxisLabelSize: viewModel.yAxis.AxisLabelSize,
-                            yAxisFormat: viewModel.yAxis.AxisFormat
+                            yAxisLabelSize: viewModel.yAxis.AxisLabelSize,                           
+                            yAxisLabelfontFamily: viewModel.yAxis.AxisLabelFont,
+                            yAxisLabelFormat: viewModel.yAxis.AxisLabelFormat
                         },
                         validValues: {
                             yAxisTitleSize: {
