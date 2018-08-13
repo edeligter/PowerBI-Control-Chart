@@ -401,7 +401,7 @@ module powerbi.extensibility.visual {
             var lenText: number = label.toString().length;
             var textSize: number = this.controlChartViewModel.xAxis.AxisLabelSize;
             var xOffset: number = textSize * sinAngle;
-            var yOffset: number = Math.abs(sinAngle) * lenText;
+            var yOffset: number = Math.abs(sinAngle) * (lenText) + xOffset/4;
             return xOffset + "," + yOffset;
         }
 
@@ -419,6 +419,12 @@ module powerbi.extensibility.visual {
                 width: viewPortWidth - (this.padding + xAxisOffset) * 2, 
                 height: viewPortHeight - (this.padding * 2) - yAxisOffset,
             };
+            
+            var radAngle: number = viewModel.xAxis.Rotation * Math.PI/180;
+            var sinAngle = Math.sin(radAngle);
+            var yOffset: number = Math.abs(sinAngle) * (viewModel.xAxis.AxisLabelSize * 2); // 
+            plot.height = plot.height - yOffset;
+
             this.plot = plot;
 
             this.svgGroupMain.attr({
@@ -1280,94 +1286,56 @@ module powerbi.extensibility.visual {
                     };
                     instances.push(config);
                     break;
-                case 'xAxis':
-                   //if (!viewModel.isDateRange) {
+                case 'xAxis':                 
                    
-                        var dateformat: string = "%d-%b-%y";
-                        var numericformat: string = ".3s";
-                        if(viewModel.isDateRange){
-                            dateformat = viewModel.xAxisFormat;                        
+                    var dateformat: string = "%d-%b-%y";
+                    var numericformat: string = ".3s";
+                    if(viewModel.isDateRange){
+                        dateformat = viewModel.xAxisFormat;                        
                            // numericformat = null;
-                        }
-                        else{
-                            numericformat = viewModel.xAxisFormat;                        
+                    }
+                    else{
+                        numericformat = viewModel.xAxisFormat;                        
                             //dateformat = null;
-                        }
+                    }
 
-                        var config: VisualObjectInstance = {
-                            objectName: objectName,
-                            selector: null,
-                            properties: {
-                                xAxisTitle: viewModel.xAxis.AxisTitle,
-                                xAxisTitleColor: viewModel.xAxis.TitleColor,
-                                xAxisTitleSize: viewModel.xAxis.TitleSize,
-                                xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
-                                xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
-                                xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
-                                xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
-                                xAxisLabelFormat: numericformat,
-                                xAxisDateFormat: dateformat,
-                                xAxisLabelRotation: viewModel.xAxis.Rotation
+                    var config: VisualObjectInstance = {
+                        objectName: objectName,
+                        selector: null,
+                        properties: {
+                            xAxisTitle: viewModel.xAxis.AxisTitle,
+                            xAxisTitleColor: viewModel.xAxis.TitleColor,
+                            xAxisTitleSize: viewModel.xAxis.TitleSize,
+                            xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
+                            xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
+                            xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
+                            xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
+                            xAxisLabelFormat: numericformat,
+                            xAxisDateFormat: dateformat,
+                            xAxisLabelRotation: viewModel.xAxis.Rotation
+                        },
+                        validValues: {
+                            xAxisTitleSize: {
+                                numberRange: {
+                                    min: 4,
+                                    max: 30
+                                }
                             },
-                            validValues: {
-                                xAxisTitleSize: {
-                                    numberRange: {
-                                        min: 4,
-                                        max: 30
-                                    }
-                                },
-                                xAxisLabelSize: {
-                                    numberRange: {
-                                        min: 4,
-                                        max: 30
-                                    }
-                                },
-                                xAxisLabelRotation: {
-                                    numberRange:  {
-                                        min: 0,
-                                        max: 360
-                                    }
+                            xAxisLabelSize: {
+                                numberRange: {
+                                    min: 4,
+                                    max: 30
+                                }
+                            },
+                            xAxisLabelRotation: {
+                                numberRange:  {
+                                    min: 0,
+                                    max: 360
                                 }
                             }
-                        };
-                    //}
-                   /*  else {
-                        var config: VisualObjectInstance = {
-                            objectName: objectName,
-                            selector: null,
-                            properties: {
-                                xAxisTitle: viewModel.xAxis.AxisTitle,
-                                xAxisTitleColor: viewModel.xAxis.TitleColor,
-                                xAxisTitleSize: viewModel.xAxis.TitleSize,
-                                xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
-                                xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
-                                xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
-                                xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
-                                dateFormat: viewModel.xAxis.AxisLabelFormat,
-                                xAxisLabelRotation: viewModel.xAxis.Rotation                                
-                            },
-                            validValues: {
-                                xAxisTitleSize: {
-                                    numberRange: {
-                                        min: 4,
-                                        max: 30
-                                    }
-                                },
-                                xAxisLabelSize: {
-                                    numberRange: {
-                                        min: 4,
-                                        max: 30
-                                    }
-                                },
-                                xAxisLabelRotation: {
-                                    numberRange:  {
-                                        min: 0,
-                                        max: 360
-                                    }
-                                }
-                            }
-                        };
-                    } */
+                        }
+                    };
+                   
                     instances.push(config);
                     break;
                 case 'yAxis':
