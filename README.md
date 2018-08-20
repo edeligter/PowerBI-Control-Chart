@@ -15,6 +15,8 @@ X axis label rotation code added
 
 Other minor code changes made for speed and stability. (Aug 2018)
 
+Increased data limit to 10000.
+
 
 THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
