@@ -47,7 +47,7 @@
                         "in": "xAxis"
                     },
                     "dataReductionAlgorithm": {
-                        "top": {"count": 5000}
+                        "top": {"count": 10000}
                     }
                 },
                 "values": {
@@ -792,9 +792,11 @@
                     },
                     "displayName": "Title Color"
                 },
-                "xAxisTitleSize": {
+                "titleFontSize": {
                     "type": {
-                        "integer": true
+                        "formatting": {
+                            "fontSize": true
+                        }
                     },
                     "displayName": "Title Size"
                 },
@@ -912,9 +914,11 @@
                     },
                     "displayName": "Label Color"
                 },
-                "xAxisLabelSize": {
+                "fontSize": {
                     "type": {
-                        "integer": true
+                        "formatting": {
+                            "fontSize": true
+                        }
                     },
                     "displayName": "Label Size"
                 },                
