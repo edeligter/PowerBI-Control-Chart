@@ -267,9 +267,9 @@ module powerbi.extensibility.visual {
                 let xAxisData: AxisData = {
                     AxisTitle: getValue<string>(dvobjs, 'xAxis', 'xAxisTitle', 'Default Value'),
                     TitleColor: getFill(dataViews[0], 'xAxis', 'xAxisTitleColor', defAxisLabelColor),
-                    TitleSize: getValue<number>(dvobjs, 'xAxis', 'xAxisTitleSize', 12),
+                    TitleSize: getValue<number>(dvobjs, 'xAxis', 'titleFontSize', 12),
                     TitleFont: getValue<string>(dvobjs, 'xAxis', 'xAxisTitlefontFamily', 'Arial'),
-                    AxisLabelSize: getValue<number>(dvobjs, 'xAxis', 'xAxisLabelSize', 12),
+                    AxisLabelSize: getValue<number>(dvobjs, 'xAxis', 'fontSize', 12),
                     AxisLabelColor: getFill(dataViews[0], 'xAxis', 'xAxisLabelColor', defAxisLabelColor),
                     AxisLabelFont: getValue<string>(dvobjs, 'xAxis', 'xAxisLabelfontFamily', 'Arial'),
                     Rotation: getValue<number>(dvobjs, 'xAxis', 'xAxisLabelRotation', 0),
@@ -379,7 +379,7 @@ module powerbi.extensibility.visual {
                 .attr("height", options.viewport.height);
             
             if (this.controlChartViewModel && this.controlChartViewModel.points[0]) { //check if this detects empty viewModel
-                var plot = this.plot;
+                //var plot = this.plot;
                 this.GetSubgroups();                                                //determine subgroups
                 this.CalcStats();                                                   //calc mean and sd
                 this.CreateAxes(options.viewport.width, options.viewport.height); 
@@ -390,6 +390,8 @@ module powerbi.extensibility.visual {
                 if (this.controlChartViewModel.limitLine.show)
                     this.PlotControlLimits();                                       //lcl and ucl
                 this.PlotData();                                                    //plot basic raw data --- need to check for valid data
+                
+               
                 this.ApplyRules();
                 this.DrawMRWarning();
             }
@@ -1053,25 +1055,27 @@ module powerbi.extensibility.visual {
             let stages = this.subgroups;
             let viewModel: ControlChartViewModel = this.controlChartViewModel;
             let data = viewModel.points;
+           
             for (let i = 0; i < stages.length; i++) {
                 for (let j = stages[i].firstId; j <= stages[i].lastId; j++) {
                     //Rule #1 - outside LCL and UCL
                     if (viewModel.runRule1)
                         if (stages[i].uCL < data[j][1] || stages[i].lCL > data[j][1])
                             meanPoints.push([j]);
-
+                    
                     //Rule #2 - over 5 incr or decr
-                    if (viewModel.runRule2) {
+                    if (viewModel.runRule2) {                                               
                         if (j > 0) {
-                            if (data[j].yValue > data[j - 1][1])
-                                consecIncPoints.push([j])
+                            if (data[j][1] > data[j - 1][1])
+                                consecIncPoints.push([j])                            
                             else {
                                 if (consecIncPoints.length > 5)
                                     this.DrawRulePoints(consecIncPoints);
+                                
                                 consecIncPoints = [];
                                 consecIncPoints.push([j]);
                             }
-                            if (data[j].yValue < data[j - 1][1])
+                            if (data[j][1] < data[j - 1][1])
                                 consecDecPoints.push([j])
                             else {
                                 if (consecDecPoints.length > 5)
@@ -1088,14 +1092,14 @@ module powerbi.extensibility.visual {
 
                     //Rule #3 - Consecutive points in sequence greater than 8
                     if (viewModel.runRule3)
-                        if (data[j].yValue > stages[i].mean) {
+                        if (data[j][1] > stages[i].mean) {                            
                             if (consecutiveLPoints.length > 8)
                                 this.DrawRulePoints(consecutiveLPoints);
                             consecutiveLPoints = [];
                             consecutiveUPoints.push([j]);
                         }
                         else
-                            if (data[j].yValue < stages[i].mean) {
+                            if (data[j][1] < stages[i].mean) {
                                 if (consecutiveUPoints.length > 8)
                                     this.DrawRulePoints(consecutiveUPoints);
                                 consecutiveUPoints = [];
@@ -1106,6 +1110,7 @@ module powerbi.extensibility.visual {
                     this.DrawRulePoints(meanPoints);
                     meanPoints = [];
                 }
+                
                 if (consecutiveLPoints.length > 8)
                     this.DrawRulePoints(consecutiveLPoints);
                 if (consecutiveUPoints.length > 8)
@@ -1113,6 +1118,8 @@ module powerbi.extensibility.visual {
                 consecutiveLPoints = [];
                 consecutiveUPoints = [];
 
+
+                
                 if (consecIncPoints.length > 5)
                     this.DrawRulePoints(consecIncPoints);
                 if (consecDecPoints.length > 5)
@@ -1287,16 +1294,14 @@ module powerbi.extensibility.visual {
                     instances.push(config);
                     break;
                 case 'xAxis':                 
-                   
+                //textSize, titleFontSize, secFontSize, secTitleFontSize
                     var dateformat: string = "%d-%b-%y";
                     var numericformat: string = ".3s";
                     if(viewModel.isDateRange){
                         dateformat = viewModel.xAxisFormat;                        
-                           // numericformat = null;
                     }
                     else{
                         numericformat = viewModel.xAxisFormat;                        
-                            //dateformat = null;
                     }
 
                     var config: VisualObjectInstance = {
@@ -1305,28 +1310,28 @@ module powerbi.extensibility.visual {
                         properties: {
                             xAxisTitle: viewModel.xAxis.AxisTitle,
                             xAxisTitleColor: viewModel.xAxis.TitleColor,
-                            xAxisTitleSize: viewModel.xAxis.TitleSize,
+                            titleFontSize: viewModel.xAxis.TitleSize,
                             xAxisTitlefontFamily: viewModel.xAxis.TitleFont,
                             xAxisLabelColor: viewModel.xAxis.AxisLabelColor,
-                            xAxisLabelSize: viewModel.xAxis.AxisLabelSize,
+                            fontSize: viewModel.xAxis.AxisLabelSize,
                             xAxisLabelfontFamily: viewModel.xAxis.AxisLabelFont,                                
                             xAxisLabelFormat: numericformat,
                             xAxisDateFormat: dateformat,
                             xAxisLabelRotation: viewModel.xAxis.Rotation
                         },
                         validValues: {
-                            xAxisTitleSize: {
+                            /* titleFontSize: {
                                 numberRange: {
                                     min: 4,
                                     max: 30
                                 }
                             },
-                            xAxisLabelSize: {
+                            textSize: {
                                 numberRange: {
                                     min: 4,
                                     max: 30
                                 }
-                            },
+                            }, */
                             xAxisLabelRotation: {
                                 numberRange:  {
                                     min: 0,
@@ -1335,7 +1340,6 @@ module powerbi.extensibility.visual {
                             }
                         }
                     };
-                   
                     instances.push(config);
                     break;
                 case 'yAxis':
